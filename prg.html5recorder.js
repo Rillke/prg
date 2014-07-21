@@ -119,7 +119,9 @@
 				this.html5Recorder.input = this.html5Recorder.audioContext.createMediaStreamSource( this.html5Recorder.stream );
 			}
 			try {
-				recorder = new Recorder( this.html5Recorder.input );
+				recorder = new Recorder( this.html5Recorder.input, {
+					workerPath: 'recorder.js/recorderWorker.js'
+				} );
 			} catch ( ex ) {
 				return $def.reject()
 					.promise();
