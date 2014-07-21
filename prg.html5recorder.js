@@ -111,7 +111,8 @@
 	};
 	$.extend( global.prg.Html5Recording.prototype, {
 		start: function() {
-			var $def = $.Deferred();
+			var recorder,
+				$def = $.Deferred();
 
 			if ( !this.html5Recorder.input ) {
 				// audio playback from the MediaStream will be re-routed into the processing graph of the AudioContext
@@ -120,12 +121,13 @@
 			try {
 				recorder = this.recorder = new Recorder( this.html5Recorder.input );
 			} catch ( ex ) {
-				$def.reject()
+				return $def.reject()
 					.promise();
 			}
 			this.waveBlob = null;
 			recorder.clear();
 			recorder.record();
+			this.recorder = recorder;
 			$def.resolve();
 			return $def.promise();
 		},
