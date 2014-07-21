@@ -1,0 +1,3 @@
+[submodule "recorder.js"]
+	path = recorder.js
+	url = git@github.com:Rillke/Recorderjs.git
