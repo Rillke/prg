@@ -157,17 +157,22 @@
 			var $def = $.Deferred(),
 				audioElem;
 
-			if ( !this.waveBlob ) return $def.reject()
-				.promise();
+			this.getData()
+				.done( function( blob ) {
+					audioElem = document.createElement( 'audio' );
 
-			audioElem = document.createElement( 'audio' );
+					player.on( 'load', function() {
+						audioElem.play();
+					}, true );
+					audioElem.setAttribute( 'src', URL.createObjectURL( blob ) );
+					audioElem.play();
+					$def.resolve( audioElem );
+				} )
+				.fail( function() {
+					$def.reject();
+				} );
 
-			player.on( 'load', function() {
-				audioElem.play();
-			}, true );
-			audioElem.setAttribute( 'src', URL.createObjectURL( this.waveBlob ) );
-			audioElem.play();
-			$def.resolve( audioElem );
+
 			return $def.promise();
 		},
 
