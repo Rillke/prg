@@ -58,7 +58,10 @@
 
 	// Make sure the namespace exists
 	if ( !global.prg ) {
-		global.prg = {};
+		global.prg = {
+			recorders: [],
+			compatibleRecorder: null
+		};
 	}
 
 	global.prg.Recorder = function() {};
@@ -211,4 +214,16 @@
 		getData: null
 	} );
 
+	global.prg.getCompatibleRecorder = function() {
+		var compatibleRecorder = null;
+		if ( global.prg.compatibleRecorder ) return global.prg.compatibleRecorder;
+
+		$.each( global.prg.recorders, function( i, recorder ) {
+			if ( recorder.prototype.isCompatible() ) {
+				compatibleRecorder = recorder;
+				return false;
+			}
+		} );
+		return ( global.prg.compatibleRecorder = compatibleRecorder );
+	};
 } )( jQuery, window.mediaWiki ? mediaWiki.libs : window );

@@ -43,7 +43,11 @@
 	} catch ( writeProtected ) {}
 
 	global.prg.Html5Recorder = function() {};
-	$.extend( global.prg.Html5Recorder.prototype, {
+
+	// Register as recorder
+	global.prg.recorders.push( global.prg.Html5Recorder );
+
+	$.extend( global.prg.Html5Recorder.prototype, Object.create( global.prg.Recorder ), {
 		isCompatible: function() {
 			var $def = $.Deferred(),
 				compat = !!( ( window.URL ) && ( window.AudioContext ) && ( navigator.getUserMedia ) && ( window.Blob && window.File ) );
@@ -61,6 +65,10 @@
 			var $def = $.Deferred(),
 				html5Recorder = this;
 
+			if ( this.hasMicrophoneAccess ) {
+				return $def.resolve()
+					.promise();
+			}
 			try {
 				html5Recorder.audioContext = new AudioContext();
 			} catch ( e ) {
@@ -72,6 +80,7 @@
 				audio: true
 			}, function( stream ) {
 				html5Recorder.stream = stream;
+				html5Recorder.hasMicrophoneAccess = true;
 
 				$def.resolve();
 			}, function() {
@@ -85,7 +94,8 @@
 			if ( !this.hasMicrophoneAccess ) {
 				throw new Error( 'Request access to the microphone before attempting to record!' );
 			}
-			return new global.prg.Recording( this );
+			$def.resolve( new this.recording( this ) );
+			return $def;
 		}
 	} );
 
@@ -100,15 +110,19 @@
 		this.html5Recorder = html5Recorder;
 	};
 	$.extend( global.prg.Html5Recording.prototype, {
-
 		start: function() {
 			var $def = $.Deferred();
 
 			if ( !this.html5Recorder.input ) {
 				// audio playback from the MediaStream will be re-routed into the processing graph of the AudioContext
-				this.html5Recorder.input = this.html5Recorder.audioContext.createMediaStreamSource( stream );
+				this.html5Recorder.input = this.html5Recorder.audioContext.createMediaStreamSource( this.html5Recorder.stream );
 			}
-			recorder = this.recorder = new Recorder( this.html5Recorder.input );
+			try {
+				recorder = this.recorder = new Recorder( this.html5Recorder.input );
+			} catch ( ex ) {
+				$def.reject()
+					.promise();
+			}
 			this.waveBlob = null;
 			recorder.clear();
 			recorder.record();
@@ -183,5 +197,6 @@
 			return $def.promise();
 		}
 	} );
+	global.prg.Html5Recorder.prototype.recording = global.prg.Html5Recording;
 
 } )( jQuery, window.mediaWiki ? mediaWiki.libs : window );
