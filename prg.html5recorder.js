@@ -161,7 +161,7 @@
 				.done( function( blob ) {
 					audioElem = document.createElement( 'audio' );
 
-					player.on( 'load', function() {
+					$(player).on( 'load', function() {
 						audioElem.play();
 					}, true );
 					audioElem.setAttribute( 'src', URL.createObjectURL( blob ) );
