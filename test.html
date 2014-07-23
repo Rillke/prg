@@ -10,41 +10,66 @@
 <script src="recorder.js/recorder.js"></script>
 </head>
 
-<body style="font-family:Arial,Helvetica,sans-serif;">
+<body style="font-family:Arial,Helvetica,sans-serif;background:black;color:white;">
 <h1>PRG</h1>
 <input id="prg-record-ra" type="submit" name="submit" value="Request Mic Access" />
 <input id="prg-record-start" type="submit" name="submit" value="Record" />
+<input id="prg-record-graph" type="submit" name="submit" value="Show graph" />
 <input id="prg-record-stop" type="submit" name="submit" value="Stop recording" />
-<input id="prg-record-play" type="submit" name="submit" value="Play sound" />
+<input id="prg-record-freezegraph" type="submit" name="submit" value="Freeze graph" />
+<input id="prg-record-play" type="submit" name="submit" value="Play recording" />
+<input id="prg-append-player" type="submit" name="submit" value="Append player" />
 <script>
 $( function() {
 	var Recorder = prg.getCompatibleRecorder(),
 		recorder = new Recorder(),
+		requestRecording = function( cb ) {
+			if ( recording ) return cb( recording );
+			recorder.getRecording()
+				.done( function( r ) {
+					recording = r;
+					return cb( r );
+				} );
+		},
 		recording;
 
 	$( '#prg-record-ra' )
 		.click( function() {
-			alert( 'Hello' );
 			recorder.requestMicrophoneAccess();
 		} );
 	$( '#prg-record-start' )
 		.click( function() {
-			alert( 'Hello' );
-			recorder.getRecording()
-				.done( function( r ) {
-					recording = r;
-					r.start();
-				} );
+			requestRecording( function( r ) {
+				r.record();
+			} );
+		} );
+	$( '#prg-record-graph' )
+		.click( function() {
+			requestRecording( function( r ) {
+				r.getVisualizer()
+					.appendTo( 'body' );
+				r.startRender();
+			} );
 		} );
 	$( '#prg-record-stop' )
 		.click( function() {
-			alert( 'Hello' );
 			recording.stopRecording();
+		} );
+	$( '#prg-record-freezegraph' )
+		.click( function() {
+			recording.stopRender();
 		} );
 	$( '#prg-record-play' )
 		.click( function() {
-			alert( 'Hello' );
 			recording.play();
+		} );
+	$( '#prg-append-player' )
+		.click( function() {
+			recording.getPlayer()
+				.done( function( player ) {
+					$( 'body' )
+						.append( player )
+				} );
 		} );
 } );
 </script>
