@@ -26,9 +26,9 @@
  * @requires jQuery
  */
 
-
+/*global AudioContext:false, console:false, Recorder:false, URL:false, alert:false, prgRequestAnimationFrame:false, mediaWiki:false */
 ( function( $, global ) {
-
+	'use strict';
 
 	// Make sure the namespace exists
 	if ( !global.prg ) {

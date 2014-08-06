@@ -28,8 +28,10 @@
  * @requires jQuery
  */
 
+ /*global mediaWiki:false*/
 
 ( function( $, global ) {
+	'use strict';
 
 	/**
 	 * Object.create polyfill
@@ -41,13 +43,13 @@
 			var F = function() {};
 			Object.create = function( o ) {
 				if ( arguments.length > 1 ) {
-					throw Error( 'Second argument not supported' );
+					throw new Error( 'Second argument not supported' );
 				}
 				if ( o === null ) {
-					throw Error( 'Cannot set a null [[Prototype]]' );
+					throw new Error( 'Cannot set a null [[Prototype]]' );
 				}
 				if ( typeof o !== 'object' ) {
-					throw TypeError( 'Argument must be an object' );
+					throw new TypeError( 'Argument must be an object' );
 				}
 				F.prototype = o;
 				return new F();
@@ -104,7 +106,6 @@
 		 * @return {prg.Recording}
 		 */
 		getRecording: function() {
-			var $def = $.Deferred();
 			if ( !this.hasMicrophoneAccess ) {
 				throw new Error( 'Request access to the microphone before attempting to record!' );
 			}
@@ -201,11 +202,7 @@
 		 * Note derived classes can either implement
 		 * `.upload()` or `.getData()` or both.
 		 * First and only argument to the .done() callback
-		 * of the Deferred is an object of the structure
-		 *     {
-		 *         data: Blob,
-		 *         type: 'MIME type'
-		 *     }
+		 * of the Deferred is a blob of the structure
 		 *
 		 * @abstract
 		 * @method getData
@@ -214,6 +211,14 @@
 		getData: null
 	} );
 
+	/**
+	 * Returns the recorder class that fits best with the
+	 * current hardware.
+	 *
+	 * @abstract
+	 * @method prg.getCompatibleRecorder
+	 * @return {prg.Recorder}
+	 */
 	global.prg.getCompatibleRecorder = function() {
 		var compatibleRecorder = null;
 		if ( global.prg.compatibleRecorder ) return global.prg.compatibleRecorder;
