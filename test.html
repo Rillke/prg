@@ -19,6 +19,7 @@
 <input id="prg-record-freezegraph" type="submit" name="submit" value="Freeze graph" />
 <input id="prg-record-play" type="submit" name="submit" value="Play recording" />
 <input id="prg-append-player" type="submit" name="submit" value="Append player" />
+<input id="prg-append-compressed"  type="submit" name="submit" value="Append compressed audio" />
 <script>
 $( function() {
 	var Recorder = prg.getCompatibleRecorder(),
@@ -66,6 +67,14 @@ $( function() {
 	$( '#prg-append-player' )
 		.click( function() {
 			recording.getPlayer()
+				.done( function( player ) {
+					$( 'body' )
+						.append( player )
+				} );
+		} );
+   $( '#prg-append-compressed' )
+		.click( function() {
+			recording.getCompressedPlayer()
 				.done( function( player ) {
 					$( 'body' )
 						.append( player )

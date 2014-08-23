@@ -162,6 +162,20 @@
 		},
 
 		/**
+		 * Get a player element containing compressed audio.
+		 * First and only argument to the .done() callback
+		 * of the Deferred is the HTMLElement containing the player.
+		 *
+		 * @abstract
+		 * @return {jQuery.Promise}
+		 */
+		getCompressedPlayer: function() {
+			var $def = $.Deferred();
+			$def.reject();
+			return $def.promise();
+		},
+
+		/**
 		 * Plays the previously recorded sound.
 		 *
 		 * @abstract
@@ -208,7 +222,22 @@
 		 * @method getData
 		 * @return {jQuery.Promise}
 		 */
-		getData: null
+		getData: null,
+
+		/**
+		 * Get the data of the previously recorded sound.
+		 * Note derived classes can either implement
+		 * `.upload()` or `.getData()` and `.getCompressedData()`
+		 * or both.
+		 * First and only argument to the .done() callback
+		 * of the Deferred returned by calling this function is a
+		 * blob of the structure
+		 *
+		 * @abstract
+		 * @method getCompressedData
+		 * @return {jQuery.Promise}
+		 */
+		getCompressedData: null
 	} );
 
 	/**

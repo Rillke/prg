@@ -7,6 +7,11 @@
  *   and, at your option any later version of that license.
  *
  * @author Rainer Rillke
+ *
+ * TODO:
+ * - Error handling everywhere
+ * -- (try ... catch around things that may throw us with errors)
+ * -- `.fail()` callbacks
  */
 
 /**
@@ -38,6 +43,7 @@
 	// Normalize several vendor-specific methods and add shims
 	try {
 		window.AudioContext = window.AudioContext || window.webkitAudioContext;
+		window.OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext || window.AudioContext;
 		navigator.getUserMedia = ( navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia );
 		window.URL = window.URL || window.webkitURL;
 		window.prgRequestAnimationFrame = ( function() {
@@ -189,6 +195,17 @@
 			return $def.promise();
 		},
 
+		getCompressedPlayer: function() {
+			var player, $def = $.Deferred();
+
+			this.getCompressedData()
+				.done( function( blob ) {
+					player = $.parseHTML( '<audio controls class="prg-preview-audio"><source src="' + URL.createObjectURL( blob ) + '" type="' + blob.type + '"></audio>' );
+					$def.resolve( player );
+				} );
+			return $def.promise();
+		},
+
 		play: function() {
 			var $def = $.Deferred(),
 				audioElem;
@@ -229,19 +246,66 @@
 		upload: null,
 
 		getData: function() {
-			var $def = $.Deferred();
-			if ( this.waveBlob ) {
-				$def.resolve( this.waveBlob );
+			var $def = $.Deferred(),
+				recording = this;
+
+			if ( recording.waveBlob ) {
+				$def.resolve( recording.waveBlob );
 			} else {
-				this.recorder.exportWAV(
+				recording.recorder.exportWAV(
 					function( blob ) {
-						this.waveBlob = blob;
+						recording.waveBlob = blob;
 						$def.resolve( blob );
 					}
 				);
 			}
 			return $def.promise();
-		}
+		},
+
+		getCompressedData: function() {
+			var $def = $.Deferred(),
+				oac = new AudioContext(),
+				audioBufferSourceNode = oac.createBufferSource();
+
+			this.getData().done( function( blob ) {
+				var fileReader = new FileReader();
+				fileReader.onload = function() {
+					oac.decodeAudioData( this.result, function( audioBuffer ) {
+						audioBufferSourceNode.buffer = audioBuffer;
+
+						var streamDest = oac.createMediaStreamDestination();
+						var recorder = new MediaRecorder( streamDest.stream );
+
+						// audioBufferSourceNode.connect( oac.destination );
+						// audioBufferSourceNode.loop = true;
+
+						recorder.ondataavailable = function(e) {
+							$def.resolve(e.data);
+						};
+
+						if ( audioBufferSourceNode.onended ) {
+							audioBufferSourceNode.onended( function() {
+								recorder.stop();
+							} );
+						} else {
+							setTimeout( function() {
+								recorder.stop();
+							}, audioBuffer.duration * 1000 );
+						}
+						audioBufferSourceNode.connect( streamDest );
+						
+						// And Go!
+						recorder.start();
+						audioBufferSourceNode.start( 0 );
+					}, function( e ){
+						// TODO: Make sure this error is handled
+						throw new Error( "Error with decoding audio data" + e.err );
+					} );
+				};
+				fileReader.readAsArrayBuffer( blob );
+			} );
+			return $def;
+		},
 	} );
 	global.prg.Html5Recorder.prototype.recording = global.prg.Html5Recording;
 
