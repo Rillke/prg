@@ -264,20 +264,24 @@
 
 		getCompressedData: function() {
 			var $def = $.Deferred(),
-				oac = new AudioContext(),
-				audioBufferSourceNode = oac.createBufferSource();
+				acxt = new AudioContext(),
+				audioBufferSourceNode = acxt.createBufferSource();
 
 			this.getData().done( function( blob ) {
+				if ( !window.MediaRecorder ) {
+					// TODO: Emscripten or something thelike or zip and
+					// oAuth or ... or speex.js
+					return $def.resolve( blob );
+				}
+
 				var fileReader = new FileReader();
 				fileReader.onload = function() {
-					oac.decodeAudioData( this.result, function( audioBuffer ) {
+					acxt.decodeAudioData( this.result, function( audioBuffer ) {
 						audioBufferSourceNode.buffer = audioBuffer;
 
-						var streamDest = oac.createMediaStreamDestination();
+						// This won't work with an offline audio context
+						var streamDest = acxt.createMediaStreamDestination();
 						var recorder = new MediaRecorder( streamDest.stream );
-
-						// audioBufferSourceNode.connect( oac.destination );
-						// audioBufferSourceNode.loop = true;
 
 						recorder.ondataavailable = function(e) {
 							$def.resolve(e.data);
@@ -296,6 +300,7 @@
 						
 						// And Go!
 						recorder.start();
+						// See http://docs.webplatform.org/wiki/apis/webaudio/AudioBufferSourceNode
 						audioBufferSourceNode.start( 0 );
 					}, function( e ){
 						// TODO: Make sure this error is handled
