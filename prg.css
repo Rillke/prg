@@ -1,0 +1,46 @@
+/*! Copyright 2014 Rainer Rillke <lastname@wikipedia.de>
+ * Quintuple-licensed under
+ * - GPLv2 and, at your option any later version of that license,
+ * - LGPL 2.1 and, at your option any later version of that license,
+ * - Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0),
+ * - GNU Free Documentation License (GNU FDL aka. GFDL) 1.2
+ *   and, at your option any later version of that license.
+ * - MIT (http://opensource.org/licenses/MIT)
+ * For detailed information confer to LICENSE in the repository's root directory.
+ *
+ * @author Rainer Rillke
+ */
+
+/**
+ * Pronunciation recording gadget.
+ * Framework for recording audio in a browser.
+ *
+ * Funded by the Wikimedia Foundation as part of an Individual Investment Grant.
+ * This means the Wikimedia Foundation supported creation materially
+ * but did not directly endorse creation of this software.
+ * More information about
+ * [Individual Investment Grants](https://meta.wikimedia.org/wiki/Grants:IEG).
+ *
+ */
+
+.oo-ui-window-frame  {
+  color: black;
+}
+.oo-ui-window-frame h1 {
+  font-size: 115%;
+  line-height: 115%;
+  font-weight: bold;
+}
+.oo-ui-window-frame h2 {
+  font-size: 100%;
+  line-height: 105%;
+  font-weight: bold;
+  margin: 0.5em 0;
+}
+.oo-ui-window-frame p {
+  line-height: 130%;
+  margin: .5em 0 1em 0;
+}
+body .prg-indeted {
+  margin-left: 0.5em;
+}

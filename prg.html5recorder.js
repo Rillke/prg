@@ -1,10 +1,12 @@
 /*! Copyright 2014 Rainer Rillke <lastname@wikipedia.de>
- * Quadrouple-licensed under
+ * Quintuple-licensed under
  * - GPLv2 and, at your option any later version of that license,
  * - LGPL 2.1 and, at your option any later version of that license,
  * - Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0),
  * - GNU Free Documentation License (GNU FDL aka. GFDL) 1.2
  *   and, at your option any later version of that license.
+ * - MIT (http://opensource.org/licenses/MIT)
+ * For detailed information confer to LICENSE in the repository's root directory.
  *
  * @author Rainer Rillke
  *
@@ -37,7 +39,7 @@
 
 	// Make sure the namespace exists
 	if ( !global.prg ) {
-		throw new Error( "Base class and namespace required here!" );
+		throw new Error( "Base class and namespace required by Pronunciation Recording Gadget (prg.Html5Recorder)!" );
 	}
 
 	// Normalize several vendor-specific methods and add shims

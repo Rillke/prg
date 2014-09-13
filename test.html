@@ -4,10 +4,17 @@
 <head>
 <title>PRG</title>
 <meta charset="UTF-8">
+<link rel="stylesheet" href="oo/oojs-ui.svg.css">
+<link rel="stylesheet" href="oo/oojs-ui-apex.css">
+<link rel="stylesheet" href="prg.css">
+
 <script src="jquery-1.11.1.min.js"></script>
+<script src="oo/oojs.js"></script>
+<script src="oo/oojs-ui.js"></script>
 <script src="prg.recorder.js"></script>
 <script src="prg.html5recorder.js"></script>
 <script src="recorder.js/recorder.js"></script>
+
 </head>
 
 <body style="font-family:Arial,Helvetica,sans-serif;background:black;color:white;">
@@ -20,6 +27,8 @@
 <input id="prg-record-play" type="submit" name="submit" value="Play recording" />
 <input id="prg-append-player" type="submit" name="submit" value="Append player" />
 <input id="prg-append-compressed"  type="submit" name="submit" value="Append compressed audio" />
+
+<script src="prg.dialogs.js"></script>
 <script>
 $( function() {
 	var Recorder = prg.getCompatibleRecorder(),
