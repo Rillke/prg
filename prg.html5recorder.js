@@ -158,23 +158,61 @@
 			return $def.promise();
 		},
 
-		startRender: function() {
-			if ( !this.html5PPM ) throw new Error( 'Visualizer must be created before starting rendering on it!' );
-			this.html5PPM.connect( this.html5Recorder.audioContext, this.html5Recorder.input );
+		startRenderPPM: function() {
+			if ( !this.html5Analyzer ) throw new Error( 'Visualizer must be created before starting rendering on it!' );
+			this.html5Analyzer.connect( this.html5Recorder.audioContext, this.html5Recorder.input );
+			this.html5Analyzer.startPPM();
 		},
 
-		stopRender: function() {
-			this.html5PPM.disconnect();
+		startRenderWfD: function( cumulative ) {
+			if ( !this.html5Analyzer ) throw new Error( 'Visualizer must be created before starting rendering on it!' );
+			this.html5Analyzer.connect( this.html5Recorder.audioContext, this.html5Recorder.input );
+			this.html5Analyzer.startWaveform( cumulative );
 		},
 
-		getVisualizer: function() {
-			if ( !this.$visualizer ) {
-				if ( this.html5PPM ) return;
+		startRenderTimeWfD: function() {
+			if ( !this.html5Analyzer ) throw new Error( 'Visualizer must be created before starting rendering on it!' );
+			this.html5Analyzer.connect( this.html5Recorder.audioContext, this.html5Recorder.input );
+			this.html5Analyzer.startTimeWaveform();
+		},
+
+		stopRenderPPM: function() {
+			this.html5Analyzer.stopPPM();
+		},
+
+		getPPM: function() {
+			if ( !this.$ppm ) {
 				createMediaStreamSource( this.html5Recorder );
-				this.html5PPM = new global.prg.Html5PPM();
-				this.$visualizer = this.html5PPM.get();
+				if ( !this.html5Analyzer ) {
+					this.html5Analyzer = new global.prg.Html5Analyzer();
+				}
+				this.$ppm = this.html5Analyzer.getPPM();
 			}
-			return this.$visualizer;
+			return this.$ppm;
+		},
+
+		getWfD: function( cumulative ) {
+			var entity = cumulative ? '$ccwfd' : '$wfd';
+			if ( !this[entity] ) {
+				createMediaStreamSource( this.html5Recorder );
+				if ( !this.html5Analyzer ) {
+					this.html5Analyzer = new global.prg.Html5Analyzer();
+				};
+				this[entity] = this.html5Analyzer.getWfD( cumulative );
+			}
+			return this[entity];
+		},
+
+		getTimeWfD: function() {
+			var entity = '$tcwfd';
+			if ( !this[entity] ) {
+				createMediaStreamSource( this.html5Recorder );
+				if ( !this.html5Analyzer ) {
+					this.html5Analyzer = new global.prg.Html5Analyzer();
+				};
+				this[entity] = this.html5Analyzer.getTimeWfD();
+			}
+			return this[entity];
 		},
 
 		stopRecording: function() {
@@ -316,6 +354,7 @@
 	} );
 	global.prg.Html5Recorder.prototype.recording = global.prg.Html5Recording;
 
+	// A peak programme meter
 	global.prg.HtmlPPM = function() {
 		var HEIGHT = this.height = 20,
 			WIDTH = this.width = 128;
@@ -374,28 +413,187 @@
 		}
 	} );
 
+	// A canvas waveform display
+	global.prg.CanvasWaveformDisplay = function( options ) {
+		this.options = $.extend( {}, this.defaults, options );
 
-	global.prg.Html5PPM = function() {
+		this.$visualizer = $( '<div>' )
+			.addClass( 'prg-visualizer' )
+			.css( {
+				background: '#000',
+				position: 'relative',
+				border: '1px solid grey',
+				overflow: 'hidden'
+			} );
+		this.$canvas = $( '<canvas>' )
+			.attr( this.getDimensions() )
+			.appendTo( this.$visualizer );
+
+		this.setDimensions( this.getDimensions() );
+		this.ctx2Dcontext = this.$canvas[0].getContext('2d');
+		this.ctx2Dcontext.fillStyle = "#AAAAAA";
+	};
+	$.extend( global.prg.CanvasWaveformDisplay.prototype, {
+		defaults: {
+			height: 256,
+			width: 256,
+			cumulative: false
+		},
+
+		getDimensions: function() {
+			return {
+				height: this.options.height,
+				width: this.options.width
+			};
+		},
+		setDimensions: function( values ) {
+			this.dimensions = values;
+			this.$visualizer.css( values );
+			this.$canvas.attr( values );
+			this.signalsPerPixel = Math.floor( 256 / values.width );
+			if (this.lastValues) this.setValues( this.lastValues );
+		},
+
+		/**
+		 * @param {Array} values Raw time domain values (exactly 256)
+		 */
+		setValues: function( values ) {
+			// http://jsperf.com/loop-division-vs-equal-and-counters
+			var i,
+				ctx = this.ctx2Dcontext,
+				h =  this.dimensions.height,
+				w = this.dimensions.width,
+				l = values.length,
+				spp = this.signalsPerPixel,
+				factor = h / 256,
+				sshift = 0;
+
+			this.lastValues = values;
+
+			if ( !this.options.cumulative ) ctx.clearRect( 0, 0, w, h );
+			for ( i = 0; i < l; ++i, ++sshift ) {
+				if ( 0 === i % spp ) {
+					--sshift;
+				}
+				ctx.fillRect( i - sshift, values[i] * factor, 1, 1 );
+			}
+		},
+		get: function() {
+			return this.$visualizer;
+		}
+	} );
+
+	// A canvas waveform display for a time span
+	global.prg.CanvasTimespanWaveformDisplay = function( options ) {
+		this.options = $.extend( {}, this.defaults, options );
+
+		this.cachedValues = [];
+		this.offset = 0;
+
+		this.$visualizer = $( '<div>' )
+			.addClass( 'prg-visualizer' )
+			.css( {
+				background: '#000',
+				position: 'relative',
+				border: '1px solid grey',
+				overflow: 'hidden'
+			} );
+		this.$canvas = $( '<canvas>' )
+			.attr( this.getDimensions() )
+			.appendTo( this.$visualizer );
+
+		this.setDimensions( this.getDimensions() );
+		this.ctx2Dcontext = this.$canvas[0].getContext('2d');
+		this.ctx2Dcontext.fillStyle = "#AAAAAA";
+	};
+	$.extend( global.prg.CanvasTimespanWaveformDisplay.prototype, {
+		defaults: {
+			height: 256,
+			width: 256,
+			signalCountToShow: 556000
+		},
+
+		getDimensions: function() {
+			return {
+				height: this.options.height,
+				width: this.options.width
+			};
+		},
+		setDimensions: function( values ) {
+			this.dimensions = values;
+			this.$visualizer.css( values );
+			this.$canvas.attr( values );
+			this.signalsPerPixel = Math.floor( this.options.signalCountToShow / values.width );
+			// if ( this.cachedValues.length ) this.setValues( this.lastValues );
+		},
+
+		/**
+		 * @param {Array} values Raw time domain values (exactly 256)
+		 */
+		pushValues: function( values ) {
+			this.cachedValues.push( values );
+			this.render( values, this.offset );
+			this.offset++;
+		},
+
+		render: function( values, offset ) {
+			// http://jsperf.com/loop-division-vs-equal-and-counters
+			var i,
+				ctx = this.ctx2Dcontext,
+				l = values.length,
+				h = this.options.height,
+				spp = this.signalsPerPixel,
+				factor = h / 256,
+				sshift = 0;
+
+			
+			offset = Math.floor( offset * 256 / spp );
+
+			for ( i = 0; i < l; ++i, ++sshift ) {
+				if ( 0 === i % spp ) {
+					--sshift;
+				}
+				ctx.fillRect( i - sshift + offset, values[i] * factor, 1, 1 );
+			}
+		},
+		get: function() {
+			return this.$visualizer;
+		}
+	} );
+
+
+	global.prg.Html5Analyzer = function() {
+		// Peak programme meter
 		this.htmlPPM = new global.prg.HtmlPPM();
-		this.$visualizer = this.htmlPPM.get();
+		this.$ppmVisualizer = this.htmlPPM.get();
+
+		// WaveForm
+		this.canvasWfD = new global.prg.CanvasWaveformDisplay();
+		this.cumulativeCanvasWfD = new global.prg.CanvasWaveformDisplay( {
+			cumulative: true
+		} );
+		this.timeCanvasWfD = new global.prg.CanvasTimespanWaveformDisplay();
+		this.$wfVisualizer = this.canvasWfD.get();
+		this.$ccwfVisualizer = this.cumulativeCanvasWfD.get();
+		this.$tcwfVisualizer = this.timeCanvasWfD.get();
+
 		this.smoothing = 0.8;
 		this.fftSize = 256;
 	};
-	$.extend( global.prg.Html5PPM.prototype, {
-		setDimensions: function() {
-			throw new Error( 'not implemented yet' );
-		},
+	$.extend( global.prg.Html5Analyzer.prototype, {
 		disconnect: function() {
 			this.analyser = null;
+			return this;
+		},
+		reset: function() {
+			this.peak = 0;
+			this.lastMeasurement = $.now();
+			return this;
 		},
 		connect: function( audioContext, input ) {
-			var ppm = this,
-				peak = 0,
-				lastMeasurement = $.now();
-
 			// Prevent running concurrency processes
-			if ( this.isRenderning ) return;
-			this.isRenderning = true;
+			if ( this.isConnected ) return this;
+			this.isConnected = true;
 
 			// Use the AnalyserNode
 			this.analyser = audioContext.createAnalyser();
@@ -406,19 +604,27 @@
 			this.analyser.minDecibels = -60;
 			this.analyser.maxDecibels = 0;
 
-			this.times = new Uint8Array( this.fftSize );
+			this.ppmTimes = new Uint8Array( this.fftSize );
+			// monitoring for 1700ms = 1.7s
 			this.maxVols = new Uint8Array( 1700 );
+			return this;
+		},
+		startPPM: function() {
+			var h5a = this;
+
+			h5a.ppmStopped = false;
+			h5a.reset();
 
 			var render = function() {
 				var maxVol = 0,
 					clippings = 0,
 					now = $.now(),
-					indexFrom = lastMeasurement % 1700,
+					indexFrom = h5a.lastMeasurement % 1700,
 					indexNow = now % 1700,
-					maxVols = ppm.maxVols,
+					maxVols = h5a.maxVols,
 					maxVol17 = 0,
-					fftSize = ppm.fftSize,
-					htmlPPM = ppm.htmlPPM,
+					fftSize = h5a.fftSize,
+					htmlPPM = h5a.htmlPPM,
 					i, value, ratio;
 
 				// Get the time data from the currently playing sound
@@ -428,14 +634,13 @@
 				// reliably detect them but for the purpose we're going to
 				// use this meter, it should be sufficient just doing it this
 				// way.
-				if ( !ppm.analyser ) {
-					ppm.isRenderning = false;
+				if ( h5a.ppmStopped ) {
 					return;
 				}
-				ppm.analyser.getByteTimeDomainData( ppm.times );
+				h5a.analyser.getByteTimeDomainData( h5a.ppmTimes );
 
 				for ( i = 0; i < fftSize; ++i ) {
-					value = ppm.times[ i ];
+					value = h5a.ppmTimes[ i ];
 					ratio = Math.abs( 128 - value );
 					maxVol = Math.max( maxVol, ratio );
 
@@ -444,6 +649,7 @@
 					}
 				}
 				maxVols[ indexNow ] = maxVol;
+				// "0-out" everthing that happened more than 1.7s ago
 				while ( true ) {
 					indexFrom++;
 					indexFrom %= 1700;
@@ -453,28 +659,106 @@
 						maxVols[ indexFrom ] = 0;
 					}
 				}
+				// find maximum volume over 1.7s
 				for ( i = 0; i < 1700; ++i ) {
 					maxVol17 = Math.max( maxVol17, maxVols[ i ] );
 				}
 
 
-				peak = Math.max( peak, maxVol );
+				h5a.peak = Math.max( h5a.peak, maxVol );
 				htmlPPM.setValues( {
 					volume: maxVol / 128,
-					peakLevel: peak / 128,
+					peakLevel: h5a.peak / 128,
 					maxVol17: maxVol17 / 128
 				} );
 				if ( clippings ) {
 					alert( 'Clipping detected! ' + clippings );
 				}
 
-				lastMeasurement = now;
+				h5a.lastMeasurement = now;
 				prgRequestAnimationFrame( render );
 			};
 			render();
+			return this;
 		},
-		get: function() {
-			return this.$visualizer;
+		stopPPM: function() {
+			this.ppmStopped = true;
+			return this;
+		},
+		startWaveform: function( cumulative ) {
+			var h5a = this,
+				cwfd = cumulative ? this.cumulativeCanvasWfD : this.canvasWfD;
+
+			if ( cumulative ) {
+				h5a.ccwfStopped = false;
+			} else {
+				h5a.wfStopped = false;
+			}
+
+			var wfTimes = new Uint8Array( this.fftSize );
+
+			var render = function() {
+				if ( ( h5a.ccwfStopped && cumulative ) || ( h5a.wfStopped && !cumulative ) ) {
+					return;
+				}
+
+				h5a.analyser.getByteTimeDomainData( wfTimes );
+				cwfd.setValues( wfTimes );
+
+				prgRequestAnimationFrame( render );
+			};
+			render();
+			return this;
+		},
+		stopWavefrom: function( cumulative ) {
+			if ( cumulative ) {
+				this.wfStopped = true;
+			} else {
+				this.ccwfStopped = true;
+			}
+			return this;
+		},
+		startTimeWaveform: function() {
+			var h5a = this,
+				cwfd = this.timeCanvasWfD;
+
+			var wfTimes = new Uint8Array( this.fftSize );
+			h5a.tcwfStopped = false;
+
+			var render = function() {
+				if ( h5a.tcwfStopped ) {
+					return;
+				}
+
+				h5a.analyser.getByteTimeDomainData( wfTimes );
+				cwfd.pushValues( wfTimes );
+
+				prgRequestAnimationFrame( render );
+			};
+			render();
+			return this;
+		},
+		stopTimeWavefrom: function() {
+			h5a.tcwfStopped = true;
+			return this;
+		},
+		testEnvironment: function() {
+			var testResult = $.Deferred();
+
+			return testResult;
+		},
+		getPPM: function() {
+			return this.$ppmVisualizer;
+		},
+		getWfD: function( cumulative ) {
+			if ( cumulative ) {
+				return this.$ccwfVisualizer;
+			} else {
+				return this.$wfVisualizer;
+			}
+		},
+		getTimeWfD: function() {
+			return this.$tcwfVisualizer;
 		}
 	} );
 

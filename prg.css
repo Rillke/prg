@@ -41,6 +41,9 @@
   line-height: 130%;
   margin: .5em 0 1em 0;
 }
+.prg-content {
+  min-height: 14em;
+}
 body .prg-indeted {
   margin-left: 0.5em;
 }
