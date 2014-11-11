@@ -197,7 +197,7 @@
 				createMediaStreamSource( this.html5Recorder );
 				if ( !this.html5Analyzer ) {
 					this.html5Analyzer = new global.prg.Html5Analyzer();
-				};
+				}
 				this[entity] = this.html5Analyzer.getWfD( cumulative );
 			}
 			return this[entity];
@@ -209,7 +209,7 @@
 				createMediaStreamSource( this.html5Recorder );
 				if ( !this.html5Analyzer ) {
 					this.html5Analyzer = new global.prg.Html5Analyzer();
-				};
+				}
 				this[entity] = this.html5Analyzer.getTimeWfD();
 			}
 			return this[entity];
@@ -350,7 +350,7 @@
 				fileReader.readAsArrayBuffer( blob );
 			} );
 			return $def;
-		},
+		}
 	} );
 	global.prg.Html5Recorder.prototype.recording = global.prg.Html5Recording;
 
@@ -538,23 +538,39 @@
 
 		render: function( values, offset ) {
 			// http://jsperf.com/loop-division-vs-equal-and-counters
-			var i,
+			var i, yPositionPos, yPositionNeg, xPosition, heightPos,
 				ctx = this.ctx2Dcontext,
 				l = values.length,
 				h = this.options.height,
 				spp = this.signalsPerPixel,
 				factor = h / 256,
-				sshift = 0;
+				sshift = 0,
+				posAmpl = 128,
+				negAmpl = 128;
 
 			
 			offset = Math.floor( offset * 256 / spp );
 
 			for ( i = 0; i < l; ++i, ++sshift ) {
 				if ( 0 === i % spp ) {
+					xPosition = i - sshift + offset;
+					yPositionPos = posAmpl * factor;
+					yPositionNeg = negAmpl * factor;
+					heightPos = Math.abs( 128 - posAmpl ) * factor;
+					ctx.fillRect( xPosition, yPositionPos - heightPos, 1, heightPos );
+					ctx.fillRect( xPosition, yPositionNeg, 1, Math.abs( 128 - negAmpl ) * factor );
+					posAmpl = negAmpl = 128;
 					--sshift;
 				}
-				ctx.fillRect( i - sshift + offset, values[i] * factor, 1, 1 );
+				posAmpl = Math.max( posAmpl, values[i] );
+				negAmpl = Math.min( negAmpl, values[i] );
 			}
+			xPosition = i - sshift + offset;
+			yPositionPos = posAmpl * factor;
+			yPositionNeg = negAmpl * factor;
+			heightPos = Math.abs( 128 - posAmpl ) * factor;
+			ctx.fillRect( xPosition, yPositionPos - heightPos, 1, heightPos );
+			ctx.fillRect( xPosition, yPositionNeg, 1, Math.abs( 128 - negAmpl ) * factor );
 		},
 		get: function() {
 			return this.$visualizer;
@@ -739,7 +755,7 @@
 			return this;
 		},
 		stopTimeWavefrom: function() {
-			h5a.tcwfStopped = true;
+			this.tcwfStopped = true;
 			return this;
 		},
 		testEnvironment: function() {
